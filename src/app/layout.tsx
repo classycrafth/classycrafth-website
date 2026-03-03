@@ -25,7 +25,7 @@ export default function RootLayout({
 
         <Navbar />
 
-        <main className="pt-28 pb-24">
+        <main className="pb-24">
           {children}
         </main>
 
