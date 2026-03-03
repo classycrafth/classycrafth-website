@@ -24,8 +24,8 @@ export default function RootLayout({
 
         <Navbar />
 
-        {/* Navbar height compensation */}
-        <main className="pt-20">
+        {/* REMOVE ALL TOP PADDING */}
+        <main>
           {children}
         </main>
 
