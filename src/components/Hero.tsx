@@ -6,8 +6,8 @@ import { motion } from "framer-motion";
 
 export default function Hero() {
   return (
-    <section className="relative bg-gradient-to-br from-[#0f172a] via-[#0b1a35] to-[#0a0f1f] text-white pt-40 md:pt-44 pb-28 md:pb-36 px-6 overflow-hidden">
-      
+    <section className="relative -mt-24 bg-gradient-to-br from-[#0f172a] via-[#0b1a35] to-[#0a0f1f] text-white pt-32 md:pt-36 pb-28 md:pb-36 px-6 overflow-hidden">
+
       <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-14 lg:gap-20 items-center">
 
         {/* LEFT CONTENT */}
@@ -32,10 +32,10 @@ export default function Hero() {
           <div className="mt-10 flex gap-6 flex-wrap">
 
             <Link
-              href="#contact"
+              href="/contact"
               className="bg-white text-black px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
             >
-              Request a Quote
+              Get Bulk Pricing Now
             </Link>
 
             <Link
@@ -61,7 +61,6 @@ export default function Hero() {
           transition={{ duration: 0.8 }}
           className="relative h-[460px] md:h-[520px] lg:h-[560px] rounded-3xl border border-white/10"
         >
-          {/* Left dark fade for readability */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#0f172a]/80 via-[#0f172a]/40 to-transparent rounded-3xl z-10" />
           
           <Image
