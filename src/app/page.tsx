@@ -1,6 +1,5 @@
 "use client";
 
-import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Stats from "@/components/Stats";
 import ProductsPreview from "@/components/ProductsPreview";
@@ -10,30 +9,19 @@ import Process from "@/components/Process";
 import Testimonials from "@/components/Testimonials";
 import Contact from "@/components/Contact";
 import FinalCTA from "@/components/FinalCTA";
-import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <main className="bg-[#0f172a] text-white overflow-x-hidden">
-      
-      <Navbar />
+    <div className="bg-[#0f172a] text-white overflow-x-hidden">
 
       <Hero />
-
       <Stats />
-
       <ProductsPreview />
-
       <WhyChooseUs />
-
       <About />
-
       <Process />
-
       <Testimonials />
-
       <Contact />
-
       <FinalCTA />
 
       {/* Floating WhatsApp Button */}
@@ -46,8 +34,6 @@ export default function Home() {
         WhatsApp
       </a>
 
-      <Footer />
-
-    </main>
+    </div>
   );
 }
