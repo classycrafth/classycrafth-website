@@ -17,6 +17,11 @@ export default function Navbar() {
           <Link href="/products" className="hover:text-blue-900 transition">
             Products
           </Link>
+
+          <Link href="/about" className="hover:text-blue-900 transition">
+            About Us
+          </Link>
+
           <Link href="#contact" className="hover:text-blue-900 transition">
             Contact
           </Link>
