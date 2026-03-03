@@ -21,16 +21,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-white text-gray-800 antialiased">
-
         <Navbar />
-
-        {/* REMOVE ALL TOP PADDING */}
-        <main>
-          {children}
-        </main>
-
+        <main>{children}</main>
         <Footer />
-
       </body>
     </html>
   );

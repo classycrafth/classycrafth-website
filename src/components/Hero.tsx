@@ -6,11 +6,10 @@ import { motion } from "framer-motion";
 
 export default function Hero() {
   return (
-    <section className="relative bg-gradient-to-br from-[#0f172a] via-[#0b1a35] to-[#0a0f1f] text-white pt-32 md:pt-36 pb-28 md:pb-36 px-6 overflow-hidden">
+    <section className="relative bg-gradient-to-br from-[#0f172a] via-[#0b1a35] to-[#0a0f1f] text-white pt-20 pb-28 md:pb-36 px-6 overflow-hidden">
 
       <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-14 lg:gap-20 items-center">
 
-        {/* LEFT CONTENT */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -30,7 +29,6 @@ export default function Hero() {
           </p>
 
           <div className="mt-10 flex gap-6 flex-wrap">
-
             <Link
               href="/contact"
               className="bg-white text-black px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
@@ -44,7 +42,6 @@ export default function Hero() {
             >
               View Collection
             </Link>
-
           </div>
 
           <div className="mt-10 flex gap-8 text-sm text-gray-400 flex-wrap">
@@ -54,7 +51,6 @@ export default function Hero() {
           </div>
         </motion.div>
 
-        {/* RIGHT IMAGE */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
