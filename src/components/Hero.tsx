@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 
 export default function Hero() {
   return (
-    <section className="relative -mt-24 bg-gradient-to-br from-[#0f172a] via-[#0b1a35] to-[#0a0f1f] text-white pt-32 md:pt-36 pb-28 md:pb-36 px-6 overflow-hidden">
+    <section className="relative bg-gradient-to-br from-[#0f172a] via-[#0b1a35] to-[#0a0f1f] text-white py-28 md:py-36 px-6 overflow-hidden">
 
       <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-14 lg:gap-20 items-center">
 

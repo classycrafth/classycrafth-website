@@ -20,11 +20,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gradient-to-b from-white via-gray-50 to-white text-gray-800 antialiased">
+      <body className="bg-white text-gray-800 antialiased">
 
         <Navbar />
 
-        <main>
+        {/* Navbar height compensation */}
+        <main className="pt-20">
           {children}
         </main>
 
