@@ -2,7 +2,6 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import StickyCTA from "@/components/StickyCTA";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://classycrafth.com"),
@@ -25,12 +24,11 @@ export default function RootLayout({
 
         <Navbar />
 
-        <main className="pb-24">
+        <main>
           {children}
         </main>
 
         <Footer />
-        <StickyCTA />
 
       </body>
     </html>
