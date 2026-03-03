@@ -1,5 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://classycrafth.com"),
@@ -71,7 +73,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="bg-gradient-to-b from-white via-gray-50 to-white text-gray-800 antialiased">
+
+        {/* Global Navbar */}
+        <Navbar />
+
+        {/* Page Content */}
+        <main className="pt-28">
+          {children}
+        </main>
+
+        {/* Global Footer */}
+        <Footer />
+
+      </body>
     </html>
   );
 }
