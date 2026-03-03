@@ -1,5 +1,3 @@
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Image from "next/image";
 
 export default function ProductsPage() {
@@ -13,71 +11,67 @@ export default function ProductsPage() {
   ];
 
   return (
-    <main className="bg-white text-gray-800">
-      <Navbar />
+    <div className="min-h-screen">
 
-      {/* HEADER */}
-      <section className="bg-gradient-to-br from-blue-900 to-indigo-900 text-white pt-40 pb-20 px-6 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold">
+      {/* HERO HEADER */}
+      <section className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white pt-36 pb-24 px-6 text-center">
+        <h1 className="text-5xl font-bold tracking-tight">
           Product Catalog
         </h1>
-        <p className="mt-4 text-gray-200">
+        <p className="mt-5 text-gray-200 max-w-2xl mx-auto">
           Corporate Uniforms | School Uniforms | Corporate Gifts
         </p>
       </section>
 
       {/* CORPORATE UNIFORMS */}
-      <section className="py-20 px-6">
+      <section className="py-24 px-6">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-bold mb-10">
+          <h2 className="text-3xl font-bold mb-14 text-blue-900">
             Corporate Uniform Collection
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-10">
             {corporateProducts.map((product, index) => (
               <a
-  key={index}
-  href={`https://wa.me/9191516135516?text=Hello, I would like to request a quotation for ${product.name}. Please share bulk pricing and customization details.`}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="group relative overflow-hidden rounded-2xl cursor-pointer"
->
-  {/* IMAGE */}
-  <div className="relative h-72 w-full">
-    <Image
-      src={product.image}
-      alt={product.name}
-      fill
-      className="object-cover transition duration-500 group-hover:scale-110"
-    />
+                key={index}
+                href={`https://wa.me/9191516135516?text=Hello, I would like to request a quotation for ${product.name}. Please share bulk pricing and customization details.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative overflow-hidden rounded-3xl cursor-pointer shadow-lg hover:shadow-2xl transition duration-500"
+              >
+                <div className="relative h-80 w-full">
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    className="object-cover transition duration-700 group-hover:scale-110"
+                  />
 
-    {/* DARK OVERLAY */}
-    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition duration-500"></div>
+                  <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition duration-500"></div>
 
-    {/* TEXT OVER IMAGE */}
-    <div className="absolute bottom-6 left-6 text-white">
-      <h3 className="text-xl font-semibold tracking-wide">
-        {product.name}
-      </h3>
-      <p className="text-sm text-gray-300 mt-1 opacity-0 group-hover:opacity-100 transition duration-500">
-        Request Bulk Quotation →
-      </p>
-    </div>
-  </div>
-</a>
+                  <div className="absolute bottom-8 left-8 text-white">
+                    <h3 className="text-xl font-semibold tracking-wide">
+                      {product.name}
+                    </h3>
+                    <p className="text-sm text-gray-300 mt-2 opacity-0 group-hover:opacity-100 transition duration-500">
+                      Request Bulk Quotation →
+                    </p>
+                  </div>
+                </div>
+              </a>
             ))}
           </div>
         </div>
       </section>
 
       {/* SCHOOL UNIFORMS */}
-      <section className="py-20 px-6 bg-gray-50">
+      <section className="py-24 px-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-bold mb-10">
+          <h2 className="text-3xl font-bold mb-14 text-blue-900">
             School Uniform Collection
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-10">
             {[
               "School Shirts",
               "Trousers & Skirts",
@@ -91,9 +85,9 @@ export default function ProductsPage() {
                 href={`https://wa.me/9191516135516?text=Hello, I am interested in ${item} bulk order. Please share details.`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group bg-white h-64 rounded-2xl flex flex-col items-center justify-center shadow-md hover:shadow-2xl transition duration-300 cursor-pointer border border-gray-100 hover:-translate-y-1 block"
+                className="group bg-white h-72 rounded-3xl flex flex-col items-center justify-center shadow-md hover:shadow-2xl transition duration-500 border border-gray-100 hover:-translate-y-2"
               >
-                <span className="text-gray-700 font-medium group-hover:text-blue-900 transition">
+                <span className="text-gray-800 font-semibold group-hover:text-blue-900 transition text-lg">
                   {item}
                 </span>
                 <span className="mt-3 text-sm text-gray-400 group-hover:text-blue-700 transition">
@@ -106,13 +100,13 @@ export default function ProductsPage() {
       </section>
 
       {/* CORPORATE GIFTS */}
-      <section className="py-20 px-6">
+      <section className="py-24 px-6">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-bold mb-10">
+          <h2 className="text-3xl font-bold mb-14 text-blue-900">
             Corporate Gift Collection
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-10">
             {[
               "Custom T-Shirts",
               "Bags & Backpacks",
@@ -126,9 +120,9 @@ export default function ProductsPage() {
                 href={`https://wa.me/9191516135516?text=Hello, I am interested in ${item} bulk order. Please share customization details.`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group bg-white h-64 rounded-2xl flex flex-col items-center justify-center shadow-md hover:shadow-2xl transition duration-300 cursor-pointer border border-gray-100 hover:-translate-y-1 block"
+                className="group bg-white h-72 rounded-3xl flex flex-col items-center justify-center shadow-md hover:shadow-2xl transition duration-500 border border-gray-100 hover:-translate-y-2"
               >
-                <span className="text-gray-700 font-medium group-hover:text-blue-900 transition">
+                <span className="text-gray-800 font-semibold group-hover:text-blue-900 transition text-lg">
                   {item}
                 </span>
                 <span className="mt-3 text-sm text-gray-400 group-hover:text-blue-700 transition">
@@ -140,7 +134,6 @@ export default function ProductsPage() {
         </div>
       </section>
 
-      <Footer />
-    </main>
+    </div>
   );
 }
