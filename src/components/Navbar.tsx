@@ -76,7 +76,7 @@ export default function Navbar() {
 
         {/* CTA */}
         <a
-          href="https://wa.me/9191516135516"
+          href="https://wa.me/919201633665"
           target="_blank"
           rel="noopener noreferrer"
           className="bg-white text-black px-5 py-2 rounded-lg text-sm font-semibold hover:scale-105 transition"

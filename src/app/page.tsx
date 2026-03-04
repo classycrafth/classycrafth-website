@@ -20,7 +20,7 @@ export default function Home() {
 
       {/* WhatsApp Floating CTA */}
       <a
-        href="https://wa.me/9191516135516?text=Hello%20ClassyCrafth%2C%20I%20am%20interested%20in%20bulk%20uniform%20manufacturing.%20Please%20share%20details."
+        href="https://wa.me/919201633665?text=Hello%20ClassyCrafth%2C%20I%20am%20interested%20in%20bulk%20uniform%20manufacturing.%20Please%20share%20details."
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-8 right-8 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg font-semibold z-50 animate-pulse hover:scale-110 transition"

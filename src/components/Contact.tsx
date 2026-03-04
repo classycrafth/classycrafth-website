@@ -4,15 +4,53 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 
 export default function Contact() {
-  const [qty, setQty] = useState<number>(100);
+  const [qtyCalc, setQtyCalc] = useState<number>(100);
   const pricePerUnit = 450;
-  const estimate = qty * pricePerUnit;
+  const estimate = qtyCalc * pricePerUnit;
+
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+
+    const name = form.name.value;
+    const company = form.company.value;
+    const phone = form.phone.value;
+    const qty = form.qty.value;
+    const message = form.message.value;
+
+    const text = `
+Hello ClassyCrafth
+
+Name: ${name}
+Company: ${company}
+Phone: ${phone}
+Quantity: ${qty}
+
+Requirement:
+${message}
+`;
+
+    /* WHATSAPP */
+    const whatsappURL =
+      "https://wa.me/919201633665?text=" + encodeURIComponent(text);
+
+    window.open(whatsappURL, "_blank");
+
+    /* EMAIL */
+    const emailSubject = "New Bulk Uniform Inquiry - ClassyCrafth";
+
+    const emailBody = encodeURIComponent(text);
+
+    window.location.href = `mailto:contact@classycrafth.com?subject=${emailSubject}&body=${emailBody}`;
+
+    form.reset();
+  };
 
   return (
     <section id="contact" className="bg-gray-50 py-24 px-6">
       <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-start">
 
-        {/* LEFT SIDE */}
+        {/* LEFT */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -20,7 +58,6 @@ export default function Contact() {
           viewport={{ once: true }}
           className="space-y-10"
         >
-          {/* Contact Content */}
           <div>
             <h2 className="text-3xl md:text-4xl font-bold">
               Request a Bulk Quote
@@ -33,15 +70,17 @@ export default function Contact() {
             </p>
 
             <div className="mt-8 space-y-4 text-gray-600">
-              <p>📞 +91 91516 135516</p>
+              <p>📞 +91 92016 33665</p>
               <p>📧 contact@classycrafth.com</p>
               <p>📍 PAN India Manufacturing & Delivery</p>
             </div>
           </div>
 
-          {/* Quote Calculator */}
+          {/* QUOTE CALCULATOR */}
           <div className="bg-white rounded-2xl p-8 shadow-md">
-            <h3 className="text-2xl font-semibold">Quick Quote Estimate</h3>
+            <h3 className="text-2xl font-semibold">
+              Quick Quote Estimate
+            </h3>
 
             <p className="text-gray-600 mt-3">
               Enter approximate quantity to estimate manufacturing cost.
@@ -49,10 +88,9 @@ export default function Contact() {
 
             <input
               type="number"
-              value={qty}
-              onChange={(e) => setQty(Number(e.target.value))}
+              value={qtyCalc}
+              onChange={(e) => setQtyCalc(Number(e.target.value))}
               className="mt-6 w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-black"
-              placeholder="Quantity"
             />
 
             <div className="mt-6 text-xl font-semibold">
@@ -65,31 +103,9 @@ export default function Contact() {
           </div>
         </motion.div>
 
-        {/* CONTACT FORM */}
+        {/* FORM */}
         <motion.form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const form = e.currentTarget;
-
-            const name = (form.elements.namedItem("name") as HTMLInputElement).value;
-            const company = (form.elements.namedItem("company") as HTMLInputElement).value;
-            const phone = (form.elements.namedItem("phone") as HTMLInputElement).value;
-            const qty = (form.elements.namedItem("qty") as HTMLInputElement).value;
-            const msg = (form.elements.namedItem("message") as HTMLTextAreaElement).value;
-
-            const text =
-              `Hello ClassyCrafth,%0A` +
-              `Name: ${encodeURIComponent(name)}%0A` +
-              `Company: ${encodeURIComponent(company)}%0A` +
-              `Phone: ${encodeURIComponent(phone)}%0A` +
-              `Quantity: ${encodeURIComponent(qty)}%0A` +
-              `Requirement: ${encodeURIComponent(msg)}`;
-
-            window.open(
-              `https://wa.me/9191516135516?text=${text}`,
-              "_blank"
-            );
-          }}
+          onSubmit={handleSubmit}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
@@ -100,6 +116,7 @@ export default function Contact() {
             name="name"
             type="text"
             placeholder="Full Name"
+            required
             className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-black"
           />
 
@@ -114,6 +131,7 @@ export default function Contact() {
             name="phone"
             type="tel"
             placeholder="Phone Number"
+            required
             className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-black"
           />
 
@@ -121,6 +139,7 @@ export default function Contact() {
             name="qty"
             type="number"
             placeholder="Estimated Quantity"
+            required
             className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-black"
           />
 

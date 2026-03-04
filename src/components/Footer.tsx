@@ -28,7 +28,7 @@ export default function Footer() {
         <div>
           <h4 className="text-white font-semibold mb-4">Contact</h4>
           <p className="text-sm">Email: info@classycrafth.com</p>
-          <p className="text-sm">Phone: +91 91516135516</p>
+          <p className="text-sm">Phone: +91 9201633665</p>
           <p className="text-sm">India</p>
         </div>
 

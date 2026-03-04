@@ -35,14 +35,14 @@ export default function RootLayout({
     name: "ClassyCrafth",
     image: "https://classycrafth.com/logo.png",
     url: "https://classycrafth.com",
-    telephone: "+91-91516135516",
+    telephone: "+91-9201633665, +91-9201641135",
     address: {
       "@type": "PostalAddress",
       addressCountry: "IN"
     },
     areaServed: "India",
     sameAs: [
-      "https://wa.me/9191516135516"
+      "https://wa.me/919201633665"
     ]
   };
 
