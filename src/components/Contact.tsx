@@ -41,7 +41,7 @@ ${message}
 
     const emailBody = encodeURIComponent(text);
 
-    window.location.href = `mailto:contact@classycrafth.com?subject=${emailSubject}&body=${emailBody}`;
+    window.location.href = `mailto:nrenterprises2349@gmail.com?subject=${emailSubject}&body=${emailBody}`;
 
     form.reset();
   };
@@ -71,7 +71,7 @@ ${message}
 
             <div className="mt-8 space-y-4 text-gray-600">
               <p>📞 +91 92016 33665</p>
-              <p>📧 contact@classycrafth.com</p>
+              <p>📧 nrenterprises2349@gmail.com</p>
               <p>📍 PAN India Manufacturing & Delivery</p>
             </div>
           </div>
