@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.109.0",
     "emailjs-com": "^3.2.0",
     "framer-motion": "^12.34.4",
     "next": "16.1.6",
