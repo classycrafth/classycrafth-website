@@ -86,54 +86,35 @@ const emptyNewProduct: NewProductForm = {
   sort_order: "0",
 };
 
-export default function AdminProductsPage() {
+
+  export default function AdminProductsPage() {
   const router = useRouter();
   const supabase = createClient();
 
   const [products, setProducts] = useState<Product[]>([]);
-
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
-
-  const [productImages, setProductImages] = useState<
-    Record<number, ProductImage[]>
-  >({});
-
-  const [productSizes, setProductSizes] = useState<
-    Record<number, ProductSize[]>
-  >({});
-
-  const [productColors, setProductColors] = useState<
-    Record<number, ProductColor[]>
-  >({});
-
-  const [newImageUrls, setNewImageUrls] = useState<
-    Record<number, string>
-  >({});
-
-  const [selectedImageFiles, setSelectedImageFiles] = useState<
-    Record<number, File | null>
-  >({});
-
+  const [productImages, setProductImages] = useState<Record<number, ProductImage[]>>({});
+  const [productSizes, setProductSizes] = useState<Record<number, ProductSize[]>>({});
+  const [productColors, setProductColors] = useState<Record<number, ProductColor[]>>({});
+  const [newImageUrls, setNewImageUrls] = useState<Record<number, string>>({});
+  const [selectedImageFiles, setSelectedImageFiles] = useState<Record<number, File | null>>({});
   const [newSize, setNewSize] = useState<Record<number, string>>({});
-  const [newColorName, setNewColorName] = useState<Record<number, string>>(
-    {}
-  );
-  const [newColorCode, setNewColorCode] = useState<Record<number, string>>(
-    {}
-  );
-
-  const [newProduct, setNewProduct] =
-    useState<NewProductForm>(emptyNewProduct);
-
+  const [newColorName, setNewColorName] = useState<Record<number, string>>({});
+  const [newColorCode, setNewColorCode] = useState<Record<number, string>>({});
+  const [newProduct, setNewProduct] = useState<NewProductForm>(emptyNewProduct);
   const [loading, setLoading] = useState(true);
   const [creatingProduct, setCreatingProduct] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
   const [imageLoadingId, setImageLoadingId] = useState<number | null>(null);
   const [optionLoadingId, setOptionLoadingId] = useState<number | null>(null);
-
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [activeModal, setActiveModal] = useState<"create" | "edit" | "images" | "options" | null>(null);
+  const [activeProductId, setActiveProductId] = useState<number | null>(null);
 
   useEffect(() => {
     checkAdminAndLoadProducts();
@@ -1570,24 +1551,70 @@ export default function AdminProductsPage() {
     }
   }
 
+  const activeProduct = activeProductId
+    ? products.find((product) => product.id === activeProductId) ?? null
+    : null;
+
+  const filteredProducts = products.filter((product) => {
+    const query = searchTerm.trim().toLowerCase();
+    const categoryMatches =
+      categoryFilter === "all" ||
+      String(product.category_id) === categoryFilter;
+    const statusMatches =
+      statusFilter === "all" ||
+      (statusFilter === "active" && product.is_active) ||
+      (statusFilter === "inactive" && !product.is_active);
+
+    if (!categoryMatches || !statusMatches) {
+      return false;
+    }
+
+    if (!query) {
+      return true;
+    }
+
+    const category = categories.find((item) => item.id === product.category_id);
+    const subcategory = subcategories.find(
+      (item) => item.id === product.subcategory_id
+    );
+
+    return [
+      product.name,
+      product.description ?? "",
+      product.fabric ?? "",
+      category?.name ?? "",
+      subcategory?.name ?? "",
+    ].some((value) => value.toLowerCase().includes(query));
+  });
+
+  const openModal = (
+    modal: "create" | "edit" | "images" | "options",
+    productId?: number
+  ) => {
+    setActiveProductId(productId ?? null);
+    setActiveModal(modal);
+    setMessage("");
+    setError("");
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+    setActiveProductId(null);
+  };
+
   const selectedSubcategories = subcategories.filter(
     (item) =>
       item.is_active &&
       item.category_id ===
       Number(newProduct.category_id)
   );
-
   if (loading) {
     return (
       <main style={pageStyle}>
         <div style={containerStyle}>
           <div style={cardStyle}>
-            <h1 style={{ margin: 0 }}>
-              ClassyCrafth Admin
-            </h1>
-            <p style={{ color: "#666" }}>
-              Loading products...
-            </p>
+            <h1 style={{ margin: 0 }}>ClassyCrafth Admin</h1>
+            <p style={{ color: "#666", marginBottom: 0 }}>Loading products...</p>
           </div>
         </div>
       </main>
@@ -1597,16 +1624,12 @@ export default function AdminProductsPage() {
   return (
     <main style={pageStyle}>
       <div style={containerStyle}>
-        <div style={headerStyle}>
+        <header style={headerStyle}>
           <div>
-            <h1 style={{ margin: 0 }}>
-              ClassyCrafth Admin
-            </h1>
-            <p style={{ margin: "6px 0 0", color: "#666" }}>
-              Product Management
-            </p>
+            <div style={eyebrowStyle}>CLASSYCRAFTH ADMIN</div>
+            <h1 style={pageTitleStyle}>Product Management</h1>
+            <p style={headerSubStyle}>Manage products without the endless spreadsheet scroll.</p>
           </div>
-
           <button
             onClick={async () => {
               await supabase.auth.signOut();
@@ -1616,1342 +1639,421 @@ export default function AdminProductsPage() {
           >
             Logout
           </button>
-        </div>
+        </header>
 
-        {message && (
-          <div style={successStyle}>
-            {message}
+        {message && <div style={successStyle}>{message}</div>}
+        {error && <div style={errorStyle}>{error}</div>}
+
+        <section style={toolbarCardStyle}>
+          <div>
+            <h2 style={toolbarTitleStyle}>Products</h2>
+            <p style={toolbarTextStyle}>
+              {filteredProducts.length} of {products.length} products shown
+            </p>
           </div>
-        )}
+          <button
+            onClick={() => openModal("create")}
+            style={blackButtonStyle}
+          >
+            + Add New Product
+          </button>
+        </section>
 
-        {error && (
-          <div style={errorStyle}>
-            {error}
-          </div>
-        )}
-
-        {/* ADD NEW PRODUCT */}
-        <section style={cardStyle}>
-          <div style={sectionHeaderStyle}>
-            <div>
-              <h2 style={{ margin: 0 }}>
-                Add New Product
-              </h2>
-              <p style={{ margin: "6px 0 0", color: "#666" }}>
-                Create a new product for the website.
-              </p>
-            </div>
-          </div>
-
-          <div style={formGridStyle}>
-            <div>
-              <label style={labelStyle}>
-                Category *
-              </label>
-
-              <select
-                value={newProduct.category_id}
-                onChange={(event) =>
-                  updateNewProduct(
-                    "category_id",
-                    event.target.value
-                  )
-                }
-                style={inputStyle}
-              >
-                <option value="">
-                  Select Category
-                </option>
-
-                {categories
-                  .filter((item) => item.is_active)
-                  .map((category) => (
-                    <option
-                      key={category.id}
-                      value={category.id}
-                    >
-                      {category.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={labelStyle}>
-                Subcategory
-              </label>
-
-              <select
-                value={newProduct.subcategory_id}
-                onChange={(event) =>
-                  updateNewProduct(
-                    "subcategory_id",
-                    event.target.value
-                  )
-                }
-                disabled={!newProduct.category_id}
-                style={inputStyle}
-              >
-                <option value="">
-                  No Subcategory
-                </option>
-
-                {selectedSubcategories.map(
-                  (subcategory) => (
-                    <option
-                      key={subcategory.id}
-                      value={subcategory.id}
-                    >
-                      {subcategory.name}
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label style={labelStyle}>
-                Product Name *
-              </label>
-
-              <input
-                type="text"
-                value={newProduct.name}
-                onChange={(event) =>
-                  updateNewProduct(
-                    "name",
-                    event.target.value
-                  )
-                }
-                placeholder="e.g. Corporate Polo Shirt"
-                style={inputStyle}
-              />
-            </div>
-
-            <div>
-              <label style={labelStyle}>
-                Fabric
-              </label>
-
-              <input
-                type="text"
-                value={newProduct.fabric}
-                onChange={(event) =>
-                  updateNewProduct(
-                    "fabric",
-                    event.target.value
-                  )
-                }
-                placeholder="e.g. Cotton"
-                style={inputStyle}
-              />
-            </div>
-
-            <div>
-              <label style={labelStyle}>
-                GSM
-              </label>
-
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={newProduct.gsm}
-                onChange={(event) =>
-                  updateNewProduct(
-                    "gsm",
-                    event.target.value
-                  )
-                }
-                placeholder="e.g. 180"
-                style={inputStyle}
-              />
-            </div>
-
-            <div>
-              <label style={labelStyle}>
-                MOQ
-              </label>
-
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={newProduct.moq}
-                onChange={(event) =>
-                  updateNewProduct(
-                    "moq",
-                    event.target.value
-                  )
-                }
-                placeholder="e.g. 50"
-                style={inputStyle}
-              />
-            </div>
-
-            <div>
-              <label style={labelStyle}>
-                Sort Order
-              </label>
-
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={newProduct.sort_order}
-                onChange={(event) =>
-                  updateNewProduct(
-                    "sort_order",
-                    event.target.value
-                  )
-                }
-                style={inputStyle}
-              />
-            </div>
-          </div>
-
-          <div style={{ marginTop: "15px" }}>
-            <label style={labelStyle}>
-              Description
-            </label>
-
-            <textarea
-              value={newProduct.description}
-              onChange={(event) =>
-                updateNewProduct(
-                  "description",
-                  event.target.value
-                )
-              }
-              placeholder="Describe the product..."
-              rows={4}
-              style={{
-                ...inputStyle,
-                width: "100%",
-                resize: "vertical",
-              }}
+        <section style={filterCardStyle}>
+          <div style={searchWrapStyle}>
+            <label style={filterLabelStyle}>Search</label>
+            <input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search product, fabric, category..."
+              style={{ ...inputStyle, width: "100%" }}
             />
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "20px",
-              flexWrap: "wrap",
-              marginTop: "15px",
-            }}
-          >
-            <label style={checkLabelStyle}>
-              <input
-                type="checkbox"
-                checked={newProduct.is_active}
-                onChange={(event) =>
-                  updateNewProduct(
-                    "is_active",
-                    event.target.checked
-                  )
-                }
-              />
-              Active
-            </label>
-
-            <label style={checkLabelStyle}>
-              <input
-                type="checkbox"
-                checked={newProduct.is_featured}
-                onChange={(event) =>
-                  updateNewProduct(
-                    "is_featured",
-                    event.target.checked
-                  )
-                }
-              />
-              Featured
-            </label>
-          </div>
-
-          <button
-            onClick={createProduct}
-            disabled={creatingProduct}
-            style={{
-              ...blackButtonStyle,
-              marginTop: "18px",
-              opacity: creatingProduct ? 0.6 : 1,
-            }}
-          >
-            {creatingProduct
-              ? "Creating..."
-              : "Create Product"}
-          </button>
-
-          <div
-            style={{
-              marginTop: "10px",
-              fontSize: "12px",
-              color: "#777",
-            }}
-          >
-            Slug automatically product name se generate hoga.
-          </div>
-        </section>
-
-        {/* EXISTING PRODUCTS */}
-        <section style={cardStyle}>
-          <div style={sectionHeaderStyle}>
-            <div>
-              <h2 style={{ margin: 0 }}>
-                Products
-              </h2>
-              <p style={{ margin: "6px 0 0", color: "#666" }}>
-                Manage product information, visibility and ordering.
-              </p>
-            </div>
-          </div>
-
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                minWidth: "950px",
-                borderCollapse: "collapse",
-              }}
+          <div>
+            <label style={filterLabelStyle}>Category</label>
+            <select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+              style={{ ...inputStyle, width: "100%" }}
             >
-              <thead>
-                <tr style={{ background: "#f7f7f7" }}>
-                  <th style={cellStyle}>Product</th>
-                  <th style={cellStyle}>Category</th>
-                  <th style={cellStyle}>Subcategory</th>
-                  <th style={cellStyle}>Description</th>
-                  <th style={cellStyle}>Fabric</th>
-                  <th style={cellStyle}>GSM</th>
-                  <th style={cellStyle}>MOQ</th>
-                  <th style={cellStyle}>Active</th>
-                  <th style={cellStyle}>Featured</th>
-                  <th style={cellStyle}>Sort</th>
-                  <th style={cellStyle}>Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td style={cellStyle}>
-                      <div
-                        style={{
-                          minWidth: "180px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "#777",
-                            marginBottom: "5px",
-                          }}
-                        >
-                          Product ID: {product.id}
-                        </div>
-
-                        <div
-                          style={{
-                            fontWeight: 700,
-                            fontSize: "15px",
-                            color: "#111",
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          {product.name}
-                        </div>
-                      </div>
-                    </td>
-
-                    <td style={cellStyle}>
-                      <select
-                        value={product.category_id}
-                        onChange={(event) =>
-                          updateProduct(
-                            product.id,
-                            "category_id",
-                            event.target.value
-                          )
-                        }
-                        style={inputStyle}
-                      >
-                        {categories
-                          .filter((category) => category.is_active)
-                          .map((category) => (
-                            <option
-                              key={category.id}
-                              value={category.id}
-                            >
-                              {category.name}
-                            </option>
-                          ))}
-                      </select>
-                    </td>
-
-                    <td style={cellStyle}>
-                      <select
-                        value={product.subcategory_id ?? ""}
-                        onChange={(event) =>
-                          updateProduct(
-                            product.id,
-                            "subcategory_id",
-                            event.target.value
-                          )
-                        }
-                        style={inputStyle}
-                      >
-                        <option value="">
-                          No Subcategory
-                        </option>
-
-                        {subcategories
-                          .filter(
-                            (subcategory) =>
-                              subcategory.is_active &&
-                              subcategory.category_id ===
-                              product.category_id
-                          )
-                          .map((subcategory) => (
-                            <option
-                              key={subcategory.id}
-                              value={subcategory.id}
-                            >
-                              {subcategory.name}
-                            </option>
-                          ))}
-                      </select>
-                    </td>
-
-                    <td style={cellStyle}>
-                      <textarea
-                        value={product.description || ""}
-                        onChange={(event) =>
-                          updateProduct(
-                            product.id,
-                            "description",
-                            event.target.value
-                          )
-                        }
-                        rows={3}
-                        style={{
-                          ...inputStyle,
-                          width: "220px",
-                        }}
-                      />
-                    </td>
-
-                    <td style={cellStyle}>
-                      <input
-                        value={product.fabric || ""}
-                        onChange={(event) =>
-                          updateProduct(
-                            product.id,
-                            "fabric",
-                            event.target.value
-                          )
-                        }
-                        style={inputStyle}
-                      />
-                    </td>
-
-                    <td style={cellStyle}>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={product.gsm ?? ""}
-                        onChange={(event) =>
-                          updateProduct(
-                            product.id,
-                            "gsm",
-                            event.target.value
-                          )
-                        }
-                        style={{
-                          ...inputStyle,
-                          width: "80px",
-                        }}
-                      />
-                    </td>
-
-                    <td style={cellStyle}>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={product.moq ?? ""}
-                        onChange={(event) =>
-                          updateProduct(
-                            product.id,
-                            "moq",
-                            event.target.value
-                          )
-                        }
-                        style={{
-                          ...inputStyle,
-                          width: "90px",
-                        }}
-                      />
-                    </td>
-
-                    <td style={cellStyle}>
-                      <label style={checkLabelStyle}>
-                        <input
-                          type="checkbox"
-                          checked={product.is_active}
-                          onChange={(event) =>
-                            updateProduct(
-                              product.id,
-                              "is_active",
-                              event.target.checked
-                            )
-                          }
-                        />
-                        Active
-                      </label>
-                    </td>
-
-                    <td style={cellStyle}>
-                      <label style={checkLabelStyle}>
-                        <input
-                          type="checkbox"
-                          checked={product.is_featured}
-                          onChange={(event) =>
-                            updateProduct(
-                              product.id,
-                              "is_featured",
-                              event.target.checked
-                            )
-                          }
-                        />
-                        Featured
-                      </label>
-                    </td>
-
-                    <td style={cellStyle}>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={product.sort_order}
-                        onChange={(event) =>
-                          updateProduct(
-                            product.id,
-                            "sort_order",
-                            event.target.value
-                          )
-                        }
-                        style={{
-                          ...inputStyle,
-                          width: "70px",
-                        }}
-                      />
-                    </td>
-
-                    <td style={cellStyle}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "7px",
-                          flexWrap: "wrap",
-                          alignItems: "center",
-                        }}
-                      >
-                        <button
-                          onClick={() =>
-                            saveProduct(product)
-                          }
-                          disabled={
-                            savingId === product.id
-                          }
-                          style={{
-                            ...blackButtonStyle,
-                            opacity:
-                              savingId === product.id
-                                ? 0.6
-                                : 1,
-                          }}
-                        >
-                          {savingId === product.id
-                            ? "Saving..."
-                            : "Save Changes"}
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            deleteProduct(product)
-                          }
-                          disabled={
-                            savingId === product.id
-                          }
-                          style={{
-                            ...dangerButtonStyle,
-                            opacity:
-                              savingId === product.id
-                                ? 0.6
-                                : 1,
-                          }}
-                        >
-                          Delete Product
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+              <option value="all">All Categories</option>
+              {categories
+                .filter((category) => category.is_active)
+                .map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
                 ))}
-              </tbody>
-            </table>
+            </select>
           </div>
 
-          {products.length === 0 && (
-            <div
-              style={{
-                padding: "30px",
-                textAlign: "center",
-                color: "#666",
-              }}
+          <div>
+            <label style={filterLabelStyle}>Status</label>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              style={{ ...inputStyle, width: "100%" }}
             >
-              No products found.
-            </div>
-          )}
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
         </section>
 
-        {/* PRODUCT IMAGES */}
-        <section style={cardStyle}>
-          <div style={sectionHeaderStyle}>
-            <div>
-              <h2 style={{ margin: 0 }}>
-                Product Images
-              </h2>
-              <p style={{ margin: "6px 0 0", color: "#666" }}>
-                Add and manage images for each product.
-              </p>
-            </div>
-          </div>
+        <section style={productGridStyle}>
+          {filteredProducts.map((product) => {
+            const images = productImages[product.id] || [];
+            const primaryImage =
+              images.find((image) => image.is_primary) || images[0];
+            const category = categories.find(
+              (item) => item.id === product.category_id
+            );
+            const subcategory = subcategories.find(
+              (item) => item.id === product.subcategory_id
+            );
+            const sizes = productSizes[product.id] || [];
+            const colors = productColors[product.id] || [];
 
-          <div style={{ padding: "20px" }}>
-            {products.map((product) => {
-              const images =
-                productImages[product.id] || [];
+            return (
+              <article key={product.id} style={productCardStyle}>
+                <div style={productImageWrapStyle}>
+                  {primaryImage ? (
+                    <img
+                      src={primaryImage.image_url}
+                      alt={primaryImage.alt_text || product.name}
+                      style={productImageStyle}
+                    />
+                  ) : (
+                    <div style={imagePlaceholderStyle}>No Image</div>
+                  )}
+                  <div style={imageCountBadgeStyle}>
+                    {images.length} image{images.length === 1 ? "" : "s"}
+                  </div>
+                  {product.is_featured && (
+                    <div style={featuredBadgeStyle}>FEATURED</div>
+                  )}
+                </div>
 
-              const imageBusy =
-                imageLoadingId === product.id;
-
-              const selectedFile =
-                selectedImageFiles[product.id];
-
-              return (
-                <div
-                  key={product.id}
-                  style={subCardStyle}
-                >
-                  <div style={productTitleRowStyle}>
+                <div style={productCardBodyStyle}>
+                  <div style={productCardTopStyle}>
                     <div>
-                      <h3 style={{ margin: 0 }}>
-                        {product.name}
-                      </h3>
-
-                      <div style={smallTextStyle}>
-                        Product ID: {product.id}
-                      </div>
+                      <div style={productIdStyle}>PRODUCT ID {product.id}</div>
+                      <h2 style={productNameStyle}>{product.name}</h2>
                     </div>
-
-                    <div style={smallTextStyle}>
-                      {images.length} image
-                      {images.length !== 1 ? "s" : ""}
-                    </div>
+                    <span
+                      style={
+                        product.is_active ? activeBadgeStyle : inactiveBadgeStyle
+                      }
+                    >
+                      {product.is_active ? "Active" : "Inactive"}
+                    </span>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "14px",
-                    }}
-                  >
-                    {images.map((image) => (
-                      <div
-                        key={image.id}
-                        style={{
-                          width: "210px",
-                          border: "1px solid #ccc",
-                          borderRadius: "8px",
-                          padding: "8px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            position: "relative",
-                            width: "100%",
-                            height: "150px",
-                            overflow: "hidden",
-                            borderRadius: "6px",
-                            background: "#f5f5f5",
-                          }}
-                        >
-                          <img
-                            src={image.image_url}
-                            alt={
-                              image.alt_text ||
-                              product.name
-                            }
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
-                          />
-                        </div>
+                  <div style={metaRowStyle}>
+                    <span>{category?.name || "No Category"}</span>
+                    <span>•</span>
+                    <span>{subcategory?.name || "No Subcategory"}</span>
+                  </div>
 
-                        {image.is_primary && (
-                          <div
-                            style={{
-                              display: "inline-block",
-                              marginTop: "7px",
-                              padding: "3px 6px",
-                              background: "#000",
-                              color: "#fff",
-                              borderRadius: "4px",
-                              fontSize: "10px",
-                              fontWeight: 700,
-                            }}
-                          >
-                            PRIMARY
+                  <div style={specGridStyle}>
+                    <div><span style={specLabelStyle}>Fabric</span><strong>{product.fabric || "Not set"}</strong></div>
+                    <div><span style={specLabelStyle}>MOQ</span><strong>{product.moq ?? "Not set"}</strong></div>
+                    <div><span style={specLabelStyle}>GSM</span><strong>{product.gsm ?? "Not set"}</strong></div>
+                    <div><span style={specLabelStyle}>Options</span><strong>{sizes.length} sizes · {colors.length} colors</strong></div>
+                  </div>
+
+                  <p style={descriptionStyle}>
+                    {product.description || "No description added yet."}
+                  </p>
+
+                  <div style={actionGridStyle}>
+                    <button onClick={() => openModal("edit", product.id)} style={blackButtonStyle}>
+                      Edit Product
+                    </button>
+                    <button onClick={() => openModal("images", product.id)} style={secondaryButtonStyle}>
+                      Images ({images.length})
+                    </button>
+                    <button onClick={() => openModal("options", product.id)} style={secondaryButtonStyle}>
+                      Sizes & Colors
+                    </button>
+                    <button
+                      onClick={() => deleteProduct(product)}
+                      disabled={savingId === product.id}
+                      style={dangerButtonStyle}
+                    >
+                      {savingId === product.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+
+        {filteredProducts.length === 0 && (
+          <div style={emptyStateStyle}>
+            <strong>No products found</strong>
+            <span>Try changing the search or filters.</span>
+          </div>
+        )}
+
+        {activeModal && (
+          <div style={modalOverlayStyle} onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeModal();
+          }}>
+            <div style={modalStyle}>
+              <div style={modalHeaderStyle}>
+                <div>
+                  <div style={eyebrowStyle}>CLASSYCRAFTH ADMIN</div>
+                  <h2 style={modalTitleStyle}>
+                    {activeModal === "create" && "Add New Product"}
+                    {activeModal === "edit" && `Edit ${activeProduct?.name || "Product"}`}
+                    {activeModal === "images" && `${activeProduct?.name || "Product"} · Images`}
+                    {activeModal === "options" && `${activeProduct?.name || "Product"} · Sizes & Colors`}
+                  </h2>
+                </div>
+                <button onClick={closeModal} style={closeButtonStyle} aria-label="Close">
+                  ×
+                </button>
+              </div>
+
+              {activeModal === "create" && (
+                <div>
+                  <div style={formGridStyle}>
+                    <div>
+                      <label style={labelStyle}>Category *</label>
+                      <select
+                        value={newProduct.category_id}
+                        onChange={(event) => updateNewProduct("category_id", event.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      >
+                        <option value="">Select Category</option>
+                        {categories.filter((item) => item.is_active).map((category) => (
+                          <option key={category.id} value={category.id}>{category.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Subcategory</label>
+                      <select
+                        value={newProduct.subcategory_id}
+                        onChange={(event) => updateNewProduct("subcategory_id", event.target.value)}
+                        disabled={!newProduct.category_id}
+                        style={{ ...inputStyle, width: "100%" }}
+                      >
+                        <option value="">No Subcategory</option>
+                        {selectedSubcategories.map((subcategory) => (
+                          <option key={subcategory.id} value={subcategory.id}>{subcategory.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <label style={labelStyle}>Product Name *</label>
+                      <input value={newProduct.name} onChange={(event) => updateNewProduct("name", event.target.value)} placeholder="e.g. Corporate Formal Shirt" style={{ ...inputStyle, width: "100%" }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Fabric</label>
+                      <input value={newProduct.fabric} onChange={(event) => updateNewProduct("fabric", event.target.value)} placeholder="e.g. Poly Cotton" style={{ ...inputStyle, width: "100%" }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>GSM</label>
+                      <input type="number" min="0" step="1" value={newProduct.gsm} onChange={(event) => updateNewProduct("gsm", event.target.value)} style={{ ...inputStyle, width: "100%" }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>MOQ</label>
+                      <input type="number" min="1" step="1" value={newProduct.moq} onChange={(event) => updateNewProduct("moq", event.target.value)} style={{ ...inputStyle, width: "100%" }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Sort Order</label>
+                      <input type="number" min="0" step="1" value={newProduct.sort_order} onChange={(event) => updateNewProduct("sort_order", event.target.value)} style={{ ...inputStyle, width: "100%" }} />
+                    </div>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <label style={labelStyle}>Description</label>
+                      <textarea value={newProduct.description} onChange={(event) => updateNewProduct("description", event.target.value)} rows={4} placeholder="Describe the product..." style={{ ...inputStyle, width: "100%", resize: "vertical" }} />
+                    </div>
+                  </div>
+                  <div style={modalCheckboxRowStyle}>
+                    <label style={checkLabelStyle}><input type="checkbox" checked={newProduct.is_active} onChange={(event) => updateNewProduct("is_active", event.target.checked)} /> Active</label>
+                    <label style={checkLabelStyle}><input type="checkbox" checked={newProduct.is_featured} onChange={(event) => updateNewProduct("is_featured", event.target.checked)} /> Featured</label>
+                  </div>
+                  <div style={modalFooterStyle}>
+                    <button onClick={closeModal} style={secondaryButtonStyle}>Cancel</button>
+                    <button
+                      onClick={async () => {
+                        await createProduct();
+                      }}
+                      disabled={creatingProduct}
+                      style={{ ...blackButtonStyle, opacity: creatingProduct ? 0.6 : 1 }}
+                    >
+                      {creatingProduct ? "Creating..." : "Create Product"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeModal === "edit" && activeProduct && (
+                <div>
+                  <div style={formGridStyle}>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <label style={labelStyle}>Product Name *</label>
+                      <input value={activeProduct.name} onChange={(event) => updateProduct(activeProduct.id, "name", event.target.value)} style={{ ...inputStyle, width: "100%" }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Category</label>
+                      <select
+                        value={activeProduct.category_id}
+                        onChange={(event) => updateProduct(activeProduct.id, "category_id", event.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      >
+                        {categories.filter((category) => category.is_active).map((category) => (
+                          <option key={category.id} value={category.id}>{category.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Subcategory</label>
+                      <select
+                        value={activeProduct.subcategory_id ?? ""}
+                        onChange={(event) => updateProduct(activeProduct.id, "subcategory_id", event.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      >
+                        <option value="">No Subcategory</option>
+                        {subcategories.filter((item) => item.is_active && item.category_id === activeProduct.category_id).map((subcategory) => (
+                          <option key={subcategory.id} value={subcategory.id}>{subcategory.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Fabric</label>
+                      <input value={activeProduct.fabric || ""} onChange={(event) => updateProduct(activeProduct.id, "fabric", event.target.value)} style={{ ...inputStyle, width: "100%" }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>GSM</label>
+                      <input type="number" min="0" step="1" value={activeProduct.gsm ?? ""} onChange={(event) => updateProduct(activeProduct.id, "gsm", event.target.value)} style={{ ...inputStyle, width: "100%" }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>MOQ</label>
+                      <input type="number" min="1" step="1" value={activeProduct.moq ?? ""} onChange={(event) => updateProduct(activeProduct.id, "moq", event.target.value)} style={{ ...inputStyle, width: "100%" }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Sort Order</label>
+                      <input type="number" min="0" step="1" value={activeProduct.sort_order} onChange={(event) => updateProduct(activeProduct.id, "sort_order", event.target.value)} style={{ ...inputStyle, width: "100%" }} />
+                    </div>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <label style={labelStyle}>Description</label>
+                      <textarea value={activeProduct.description || ""} onChange={(event) => updateProduct(activeProduct.id, "description", event.target.value)} rows={5} style={{ ...inputStyle, width: "100%", resize: "vertical" }} />
+                    </div>
+                  </div>
+                  <div style={modalCheckboxRowStyle}>
+                    <label style={checkLabelStyle}><input type="checkbox" checked={activeProduct.is_active} onChange={(event) => updateProduct(activeProduct.id, "is_active", event.target.checked)} /> Active</label>
+                    <label style={checkLabelStyle}><input type="checkbox" checked={activeProduct.is_featured} onChange={(event) => updateProduct(activeProduct.id, "is_featured", event.target.checked)} /> Featured</label>
+                  </div>
+                  <div style={modalFooterStyle}>
+                    <button onClick={() => deleteProduct(activeProduct)} style={dangerButtonStyle}>Delete Product</button>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button onClick={closeModal} style={secondaryButtonStyle}>Cancel</button>
+                      <button
+                        onClick={async () => { await saveProduct(activeProduct); }}
+                        disabled={savingId === activeProduct.id}
+                        style={{ ...blackButtonStyle, opacity: savingId === activeProduct.id ? 0.6 : 1 }}
+                      >
+                        {savingId === activeProduct.id ? "Saving..." : "Save Changes"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeModal === "images" && activeProduct && (
+                <div>
+                  <div style={modalInfoStyle}>
+                    {productImages[activeProduct.id]?.length || 0} image{(productImages[activeProduct.id]?.length || 0) === 1 ? "" : "s"} · Primary image is used on the public product page.
+                  </div>
+                  <div style={imageModalGridStyle}>
+                    {(productImages[activeProduct.id] || []).map((image) => {
+                      const imageBusy = imageLoadingId === activeProduct.id;
+                      return (
+                        <div key={image.id} style={{ ...imageEditorCardStyle, border: image.is_primary ? "2px solid #111" : "1px solid #ddd" }}>
+                          <div style={editorImageWrapStyle}>
+                            <img src={image.image_url} alt={image.alt_text || activeProduct.name} style={productImageStyle} />
                           </div>
-                        )}
-
-                        <input
-                          value={image.image_url}
-                          onChange={(event) =>
-                            updateImageLocal(
-                              product.id,
-                              image.id,
-                              "image_url",
-                              event.target.value
-                            )
-                          }
-                          style={{
-                            ...inputStyle,
-                            width: "100%",
-                            marginTop: "8px",
-                          }}
-                        />
-
-                        <input
-                          value={image.alt_text || ""}
-                          onChange={(event) =>
-                            updateImageLocal(
-                              product.id,
-                              image.id,
-                              "alt_text",
-                              event.target.value
-                            )
-                          }
-                          placeholder="Alt text"
-                          style={{
-                            ...inputStyle,
-                            width: "100%",
-                            marginTop: "7px",
-                          }}
-                        />
-
-                        <input
-                          type="number"
-                          min="0"
-                          value={image.sort_order}
-                          onChange={(event) =>
-                            updateImageLocal(
-                              product.id,
-                              image.id,
-                              "sort_order",
-                              Number(event.target.value)
-                            )
-                          }
-                          style={{
-                            ...inputStyle,
-                            width: "80px",
-                            marginTop: "7px",
-                          }}
-                        />
-
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "6px",
-                            flexWrap: "wrap",
-                            marginTop: "8px",
-                          }}
-                        >
-                          <button
-                            onClick={() =>
-                              saveImage(image)
-                            }
-                            disabled={imageBusy}
-                            style={smallBlackButtonStyle}
-                          >
-                            Save
-                          </button>
-
-                          {!image.is_primary && (
-                            <button
-                              onClick={() =>
-                                setPrimaryImage(image)
-                              }
-                              disabled={imageBusy}
-                              style={secondarySmallButtonStyle}
-                            >
-                              Set Primary
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() =>
-                              deleteImage(image)
-                            }
-                            disabled={imageBusy}
-                            style={dangerButtonStyle}
-                          >
-                            Delete
-                          </button>
+                          {image.is_primary && <span style={primaryPillStyle}>PRIMARY</span>}
+                          <input value={image.image_url} onChange={(event) => updateImageLocal(activeProduct.id, image.id, "image_url", event.target.value)} placeholder="Image URL" style={{ ...inputStyle, width: "100%" }} />
+                          <input value={image.alt_text || ""} onChange={(event) => updateImageLocal(activeProduct.id, image.id, "alt_text", event.target.value)} placeholder="Alt text" style={{ ...inputStyle, width: "100%" }} />
+                          <input type="number" min="0" value={image.sort_order} onChange={(event) => updateImageLocal(activeProduct.id, image.id, "sort_order", Number(event.target.value))} style={{ ...inputStyle, width: "100%" }} />
+                          <div style={editorButtonRowStyle}>
+                            <button onClick={() => saveImage(image)} disabled={imageBusy} style={smallBlackButtonStyle}>Save</button>
+                            {!image.is_primary && <button onClick={() => setPrimaryImage(image)} disabled={imageBusy} style={secondarySmallButtonStyle}>Set Primary</button>}
+                            <button onClick={() => deleteImage(image)} disabled={imageBusy} style={dangerButtonStyle}>Delete</button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-
-                  <div
-                    style={{
-                      marginTop: "18px",
-                      paddingTop: "16px",
-                      borderTop: "1px solid #eee",
-                    }}
-                  >
-                    <label style={labelStyle}>
-                      Upload Image
-                    </label>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "10px",
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                      }}
-                    >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(event) =>
-                          selectImageFile(
-                            product.id,
-                            event.target.files?.[0] ||
-                            null
-                          )
-                        }
-                        style={{
-                          ...inputStyle,
-                          width: "280px",
-                        }}
-                      />
-
-                      <button
-                        onClick={() =>
-                          uploadProductImage(product)
-                        }
-                        disabled={imageBusy}
-                        style={{
-                          ...blackButtonStyle,
-                          opacity: imageBusy ? 0.6 : 1,
-                        }}
-                      >
-                        {imageBusy
-                          ? "Uploading..."
-                          : "Upload Image"}
-                      </button>
-                    </div>
-
-                    {selectedFile && (
-                      <div style={smallTextStyle}>
-                        Selected: {selectedFile.name}
-                      </div>
-                    )}
-
-                    <div
-                      style={{
-                        ...smallTextStyle,
-                        marginTop: "5px",
-                      }}
-                    >
-                      JPG, PNG, WEBP etc. Maximum 5 MB.
-                    </div>
+                  <div style={uploadPanelStyle}>
+                    <h3 style={subHeadingStyle}>Upload Image</h3>
+                    <input type="file" accept="image/*" onChange={(event) => selectImageFile(activeProduct.id, event.target.files?.[0] || null)} style={{ ...inputStyle, width: "100%" }} />
+                    {selectedImageFiles[activeProduct.id] && <div style={smallTextStyle}>Selected: {selectedImageFiles[activeProduct.id]?.name}</div>}
+                    <button onClick={() => uploadProductImage(activeProduct)} disabled={imageLoadingId === activeProduct.id} style={blackButtonStyle}>{imageLoadingId === activeProduct.id ? "Uploading..." : "Upload Image"}</button>
+                    <div style={smallTextStyle}>JPG, PNG, WEBP etc. Maximum 5 MB.</div>
                   </div>
-
-                  <div
-                    style={{
-                      marginTop: "18px",
-                      paddingTop: "16px",
-                      borderTop: "1px solid #eee",
-                    }}
-                  >
-                    <label style={labelStyle}>
-                      Add Image URL
-                    </label>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "10px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <input
-                        type="url"
-                        value={
-                          newImageUrls[product.id] || ""
-                        }
-                        onChange={(event) =>
-                          setNewImageUrls(
-                            (current) => ({
-                              ...current,
-                              [product.id]:
-                                event.target.value,
-                            })
-                          )
-                        }
-                        placeholder="https://example.com/product-image.jpg"
-                        style={{
-                          ...inputStyle,
-                          flex: 1,
-                          minWidth: "280px",
-                        }}
-                      />
-
-                      <button
-                        onClick={() =>
-                          addImage(product)
-                        }
-                        disabled={imageBusy}
-                        style={{
-                          ...blackButtonStyle,
-                          opacity: imageBusy ? 0.6 : 1,
-                        }}
-                      >
-                        {imageBusy
-                          ? "Saving..."
-                          : "Add Image"}
-                      </button>
+                  <div style={uploadPanelStyle}>
+                    <h3 style={subHeadingStyle}>Add Image URL</h3>
+                    <div style={urlRowStyle}>
+                      <input type="url" value={newImageUrls[activeProduct.id] || ""} onChange={(event) => setNewImageUrls((current) => ({ ...current, [activeProduct.id]: event.target.value }))} placeholder="https://example.com/product-image.jpg" style={{ ...inputStyle, flex: 1, width: "100%" }} />
+                      <button onClick={() => addImage(activeProduct)} disabled={imageLoadingId === activeProduct.id} style={blackButtonStyle}>Add Image</button>
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+              )}
 
-        {/* SIZES & COLORS */}
-        <section style={cardStyle}>
-          <div style={sectionHeaderStyle}>
-            <div>
-              <h2 style={{ margin: 0 }}>
-                Product Sizes & Colors
-              </h2>
-              <p style={{ margin: "6px 0 0", color: "#666" }}>
-                Manage the sizes and colors shown for each product.
-              </p>
+              {activeModal === "options" && activeProduct && (
+                <div>
+                  <div style={optionsSectionStyle}>
+                    <div style={sectionMiniHeaderStyle}><h3 style={subHeadingStyle}>Sizes</h3><span style={smallTextStyle}>{(productSizes[activeProduct.id] || []).length} sizes</span></div>
+                    <div style={optionListStyle}>
+                      {(productSizes[activeProduct.id] || []).map((size) => (
+                        <div key={size.id} style={optionEditorStyle}>
+                          <input value={size.size} onChange={(event) => setProductSizes((current) => ({ ...current, [activeProduct.id]: (current[activeProduct.id] || []).map((item) => item.id === size.id ? { ...item, size: event.target.value } : item) }))} style={{ ...inputStyle, width: "110px" }} />
+                          <input type="number" min="0" value={size.sort_order} onChange={(event) => setProductSizes((current) => ({ ...current, [activeProduct.id]: (current[activeProduct.id] || []).map((item) => item.id === size.id ? { ...item, sort_order: Number(event.target.value) } : item) }))} style={{ ...inputStyle, width: "80px" }} />
+                          <button onClick={() => saveSize(size)} disabled={optionLoadingId === activeProduct.id} style={smallBlackButtonStyle}>Save</button>
+                          <button onClick={() => deleteSize(size)} disabled={optionLoadingId === activeProduct.id} style={dangerButtonStyle}>Delete</button>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={addOptionRowStyle}>
+                      <input value={newSize[activeProduct.id] || ""} onChange={(event) => setNewSize((current) => ({ ...current, [activeProduct.id]: event.target.value }))} placeholder="New size e.g. S" style={{ ...inputStyle, flex: 1, width: "100%" }} />
+                      <button onClick={() => addSize(activeProduct)} disabled={optionLoadingId === activeProduct.id} style={smallBlackButtonStyle}>Add Size</button>
+                    </div>
+                  </div>
+
+                  <div style={optionsSectionStyle}>
+                    <div style={sectionMiniHeaderStyle}><h3 style={subHeadingStyle}>Colors</h3><span style={smallTextStyle}>{(productColors[activeProduct.id] || []).length} colors</span></div>
+                    <div style={optionListStyle}>
+                      {(productColors[activeProduct.id] || []).map((color) => (
+                        <div key={color.id} style={optionEditorStyle}>
+                          <span style={{ width: "24px", height: "24px", borderRadius: "50%", background: color.color_code || "#fff", border: "1px solid #aaa", flexShrink: 0 }} />
+                          <input value={color.color_name} onChange={(event) => setProductColors((current) => ({ ...current, [activeProduct.id]: (current[activeProduct.id] || []).map((item) => item.id === color.id ? { ...item, color_name: event.target.value } : item) }))} style={{ ...inputStyle, width: "130px" }} />
+                          <input value={color.color_code || ""} onChange={(event) => setProductColors((current) => ({ ...current, [activeProduct.id]: (current[activeProduct.id] || []).map((item) => item.id === color.id ? { ...item, color_code: event.target.value } : item) }))} placeholder="#2563EB" style={{ ...inputStyle, width: "120px" }} />
+                          <input type="number" min="0" value={color.sort_order} onChange={(event) => setProductColors((current) => ({ ...current, [activeProduct.id]: (current[activeProduct.id] || []).map((item) => item.id === color.id ? { ...item, sort_order: Number(event.target.value) } : item) }))} style={{ ...inputStyle, width: "80px" }} />
+                          <button onClick={() => saveColor(color)} disabled={optionLoadingId === activeProduct.id} style={smallBlackButtonStyle}>Save</button>
+                          <button onClick={() => deleteColor(color)} disabled={optionLoadingId === activeProduct.id} style={dangerButtonStyle}>Delete</button>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={addOptionRowStyle}>
+                      <input value={newColorName[activeProduct.id] || ""} onChange={(event) => setNewColorName((current) => ({ ...current, [activeProduct.id]: event.target.value }))} placeholder="Color name e.g. Navy" style={{ ...inputStyle, flex: 1, width: "100%" }} />
+                      <input value={newColorCode[activeProduct.id] || ""} onChange={(event) => setNewColorCode((current) => ({ ...current, [activeProduct.id]: event.target.value }))} placeholder="#2563EB" style={{ ...inputStyle, width: "120px" }} />
+                      <button onClick={() => addColor(activeProduct)} disabled={optionLoadingId === activeProduct.id} style={smallBlackButtonStyle}>Add Color</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          <div style={{ padding: "20px" }}>
-            {products.map((product) => {
-              const sizes =
-                productSizes[product.id] || [];
-
-              const colors =
-                productColors[product.id] || [];
-
-              const optionBusy =
-                optionLoadingId === product.id;
-
-              return (
-                <div
-                  key={product.id}
-                  style={subCardStyle}
-                >
-                  <div style={productTitleRowStyle}>
-                    <div>
-                      <h3 style={{ margin: 0 }}>
-                        {product.name}
-                      </h3>
-
-                      <div style={smallTextStyle}>
-                        Product ID: {product.id}
-                      </div>
-                    </div>
-
-                    <div style={smallTextStyle}>
-                      {sizes.length} sizes • {colors.length} colors
-                    </div>
-                  </div>
-
-                  {/* SIZES */}
-                  <div
-                    style={{
-                      borderTop: "1px solid #eee",
-                      paddingTop: "16px",
-                    }}
-                  >
-                    <h4 style={{ margin: "0 0 10px" }}>
-                      Sizes
-                    </h4>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "10px",
-                      }}
-                    >
-                      {sizes.map((size) => (
-                        <div
-                          key={size.id}
-                          style={optionBoxStyle}
-                        >
-                          <input
-                            value={size.size}
-                            onChange={(event) =>
-                              setProductSizes(
-                                (current) => ({
-                                  ...current,
-                                  [product.id]: (
-                                    current[
-                                    product.id
-                                    ] || []
-                                  ).map((item) =>
-                                    item.id === size.id
-                                      ? {
-                                        ...item,
-                                        size:
-                                          event.target
-                                            .value,
-                                      }
-                                      : item
-                                  ),
-                                })
-                              )
-                            }
-                            style={{
-                              ...inputStyle,
-                              width: "100px",
-                            }}
-                          />
-
-                          <input
-                            type="number"
-                            min="0"
-                            value={size.sort_order}
-                            onChange={(event) =>
-                              setProductSizes(
-                                (current) => ({
-                                  ...current,
-                                  [product.id]: (
-                                    current[
-                                    product.id
-                                    ] || []
-                                  ).map((item) =>
-                                    item.id === size.id
-                                      ? {
-                                        ...item,
-                                        sort_order:
-                                          Number(
-                                            event.target
-                                              .value
-                                          ),
-                                      }
-                                      : item
-                                  ),
-                                })
-                              )
-                            }
-                            style={{
-                              ...inputStyle,
-                              width: "70px",
-                            }}
-                          />
-
-                          <button
-                            onClick={() =>
-                              saveSize(size)
-                            }
-                            disabled={optionBusy}
-                            style={smallBlackButtonStyle}
-                          >
-                            Save
-                          </button>
-
-                          <button
-                            onClick={() =>
-                              deleteSize(size)
-                            }
-                            disabled={optionBusy}
-                            style={dangerButtonStyle}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                        marginTop: "14px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <input
-                        value={
-                          newSize[product.id] || ""
-                        }
-                        onChange={(event) =>
-                          setNewSize((current) => ({
-                            ...current,
-                            [product.id]:
-                              event.target.value,
-                          }))
-                        }
-                        placeholder="New size e.g. S"
-                        style={inputStyle}
-                      />
-
-                      <button
-                        onClick={() =>
-                          addSize(product)
-                        }
-                        disabled={optionBusy}
-                        style={smallBlackButtonStyle}
-                      >
-                        Add Size
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* COLORS */}
-                  <div
-                    style={{
-                      borderTop: "1px solid #eee",
-                      marginTop: "18px",
-                      paddingTop: "16px",
-                    }}
-                  >
-                    <h4 style={{ margin: "0 0 10px" }}>
-                      Colors
-                    </h4>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "10px",
-                      }}
-                    >
-                      {colors.map((color) => (
-                        <div
-                          key={color.id}
-                          style={optionBoxStyle}
-                        >
-                          <div
-                            style={{
-                              width: "24px",
-                              height: "24px",
-                              borderRadius: "50%",
-                              border: "1px solid #999",
-                              background:
-                                color.color_code ||
-                                "#ffffff",
-                              flexShrink: 0,
-                            }}
-                          />
-
-                          <input
-                            value={color.color_name}
-                            onChange={(event) =>
-                              setProductColors(
-                                (current) => ({
-                                  ...current,
-                                  [product.id]: (
-                                    current[
-                                    product.id
-                                    ] || []
-                                  ).map((item) =>
-                                    item.id === color.id
-                                      ? {
-                                        ...item,
-                                        color_name:
-                                          event.target
-                                            .value,
-                                      }
-                                      : item
-                                  ),
-                                })
-                              )
-                            }
-                            style={{
-                              ...inputStyle,
-                              width: "130px",
-                            }}
-                          />
-
-                          <input
-                            value={
-                              color.color_code || ""
-                            }
-                            onChange={(event) =>
-                              setProductColors(
-                                (current) => ({
-                                  ...current,
-                                  [product.id]: (
-                                    current[
-                                    product.id
-                                    ] || []
-                                  ).map((item) =>
-                                    item.id === color.id
-                                      ? {
-                                        ...item,
-                                        color_code:
-                                          event.target
-                                            .value,
-                                      }
-                                      : item
-                                  ),
-                                })
-                              )
-                            }
-                            placeholder="#2563EB"
-                            style={{
-                              ...inputStyle,
-                              width: "110px",
-                            }}
-                          />
-
-                          <input
-                            type="number"
-                            min="0"
-                            value={color.sort_order}
-                            onChange={(event) =>
-                              setProductColors(
-                                (current) => ({
-                                  ...current,
-                                  [product.id]: (
-                                    current[
-                                    product.id
-                                    ] || []
-                                  ).map((item) =>
-                                    item.id === color.id
-                                      ? {
-                                        ...item,
-                                        sort_order:
-                                          Number(
-                                            event.target
-                                              .value
-                                          ),
-                                      }
-                                      : item
-                                  ),
-                                })
-                              )
-                            }
-                            style={{
-                              ...inputStyle,
-                              width: "70px",
-                            }}
-                          />
-
-                          <button
-                            onClick={() =>
-                              saveColor(color)
-                            }
-                            disabled={optionBusy}
-                            style={smallBlackButtonStyle}
-                          >
-                            Save
-                          </button>
-
-                          <button
-                            onClick={() =>
-                              deleteColor(color)
-                            }
-                            disabled={optionBusy}
-                            style={dangerButtonStyle}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                        marginTop: "14px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <input
-                        value={
-                          newColorName[product.id] ||
-                          ""
-                        }
-                        onChange={(event) =>
-                          setNewColorName(
-                            (current) => ({
-                              ...current,
-                              [product.id]:
-                                event.target.value,
-                            })
-                          )
-                        }
-                        placeholder="Color name e.g. Navy"
-                        style={inputStyle}
-                      />
-
-                      <input
-                        value={
-                          newColorCode[product.id] ||
-                          ""
-                        }
-                        onChange={(event) =>
-                          setNewColorCode(
-                            (current) => ({
-                              ...current,
-                              [product.id]:
-                                event.target.value,
-                            })
-                          )
-                        }
-                        placeholder="#2563EB"
-                        style={{
-                          ...inputStyle,
-                          width: "120px",
-                        }}
-                      />
-
-                      <button
-                        onClick={() =>
-                          addColor(product)
-                        }
-                        disabled={optionBusy}
-                        style={smallBlackButtonStyle}
-                      >
-                        Add Color
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        )}
       </div>
     </main>
   );
@@ -2959,181 +2061,72 @@ export default function AdminProductsPage() {
 
 const pageStyle: CSSProperties = {
   minHeight: "100vh",
-  background: "#f5f6f7",
+  background: "#f4f5f7",
   color: "#111",
-  padding: "30px 20px 60px",
+  padding: "24px 18px 60px",
 };
 
-const containerStyle: CSSProperties = {
-  maxWidth: "1400px",
-  margin: "0 auto",
-};
-
-const headerStyle: CSSProperties = {
-  background: "#fff",
-  border: "1px solid #ddd",
-  borderRadius: "12px",
-  padding: "20px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "20px",
-  marginBottom: "18px",
-};
-
-const cardStyle: CSSProperties = {
-  background: "#fff",
-  border: "1px solid #ddd",
-  borderRadius: "12px",
-  overflow: "hidden",
-  marginBottom: "20px",
-};
-
-const subCardStyle: CSSProperties = {
-  border: "1px solid #ddd",
-  borderRadius: "10px",
-  padding: "18px",
-  marginBottom: "16px",
-};
-
-const sectionHeaderStyle: CSSProperties = {
-  padding: "20px",
-  borderBottom: "1px solid #eee",
-};
-
-const productTitleRowStyle: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "15px",
-  marginBottom: "16px",
-};
-
-const formGridStyle: CSSProperties = {
-  padding: "20px 20px 0",
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: "15px",
-};
-
-const labelStyle: CSSProperties = {
-  display: "block",
-  fontWeight: 600,
-  marginBottom: "7px",
-  fontSize: "14px",
-};
-
-const inputStyle: CSSProperties = {
-  width: "150px",
-  padding: "9px 10px",
-  border: "1px solid #ccc",
-  borderRadius: "7px",
-  fontSize: "14px",
-  boxSizing: "border-box",
-  background: "#fff",
-  color: "#111",
-};
-
-const cellStyle: CSSProperties = {
-  padding: "14px 16px",
-  borderBottom: "1px solid #eee",
-  verticalAlign: "middle",
-};
-
-const checkLabelStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "7px",
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-  fontSize: "14px",
-};
-
-const blackButtonStyle: CSSProperties = {
-  padding: "10px 16px",
-  background: "#000",
-  color: "#fff",
-  border: "none",
-  borderRadius: "7px",
-  cursor: "pointer",
-  fontWeight: 600,
-};
-
-const secondaryButtonStyle: CSSProperties = {
-  padding: "10px 16px",
-  background: "#fff",
-  color: "#111",
-  border: "1px solid #ccc",
-  borderRadius: "7px",
-  cursor: "pointer",
-  fontWeight: 600,
-};
-
-const smallBlackButtonStyle: CSSProperties = {
-  padding: "8px 11px",
-  background: "#000",
-  color: "#fff",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontWeight: 600,
-  fontSize: "12px",
-};
-
-const secondarySmallButtonStyle: CSSProperties = {
-  padding: "8px 11px",
-  background: "#fff",
-  color: "#111",
-  border: "1px solid #aaa",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontWeight: 600,
-  fontSize: "12px",
-};
-
-const dangerButtonStyle: CSSProperties = {
-  padding: "8px 11px",
-  background: "#fff",
-  color: "#c00",
-  border: "1px solid #f00",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontWeight: 600,
-  fontSize: "12px",
-};
-
-const optionBoxStyle: CSSProperties = {
-  border: "1px solid #ddd",
-  borderRadius: "8px",
-  padding: "10px",
-  background: "#fafafa",
-  display: "flex",
-  gap: "8px",
-  alignItems: "center",
-  flexWrap: "wrap",
-};
-
-const smallTextStyle: CSSProperties = {
-  fontSize: "12px",
-  color: "#777",
-  marginTop: "5px",
-};
-
-const successStyle: CSSProperties = {
-  background: "#ecfdf3",
-  border: "1px solid #b7e4c7",
-  color: "#087443",
-  borderRadius: "8px",
-  padding: "12px 14px",
-  marginBottom: "15px",
-};
-
-const errorStyle: CSSProperties = {
-  background: "#fff1f2",
-  border: "1px solid #fecdd3",
-  color: "#b42318",
-  borderRadius: "8px",
-  padding: "12px 14px",
-  marginBottom: "15px",
-};
+const containerStyle: CSSProperties = { maxWidth: "1280px", margin: "0 auto" };
+const cardStyle: CSSProperties = { background: "#fff", border: "1px solid #e2e2e2", borderRadius: "14px", padding: "20px" };
+const headerStyle: CSSProperties = { background: "#fff", border: "1px solid #e2e2e2", borderRadius: "16px", padding: "22px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "20px", marginBottom: "16px", boxShadow: "0 2px 10px rgba(0,0,0,0.03)" };
+const eyebrowStyle: CSSProperties = { fontSize: "11px", letterSpacing: "0.12em", fontWeight: 800, color: "#777", marginBottom: "5px" };
+const pageTitleStyle: CSSProperties = { margin: 0, fontSize: "28px", lineHeight: 1.15 };
+const headerSubStyle: CSSProperties = { margin: "7px 0 0", color: "#6b7280", fontSize: "14px" };
+const toolbarCardStyle: CSSProperties = { background: "#fff", border: "1px solid #e2e2e2", borderRadius: "14px", padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "15px", marginBottom: "12px" };
+const toolbarTitleStyle: CSSProperties = { margin: 0, fontSize: "20px" };
+const toolbarTextStyle: CSSProperties = { margin: "4px 0 0", color: "#777", fontSize: "13px" };
+const filterCardStyle: CSSProperties = { background: "#fff", border: "1px solid #e2e2e2", borderRadius: "14px", padding: "15px", display: "grid", gridTemplateColumns: "minmax(280px, 2fr) minmax(180px, 1fr) minmax(160px, 0.8fr)", gap: "12px", marginBottom: "18px" };
+const searchWrapStyle: CSSProperties = {};
+const filterLabelStyle: CSSProperties = { display: "block", fontSize: "12px", fontWeight: 700, color: "#555", marginBottom: "6px" };
+const productGridStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))", gap: "16px" };
+const productCardStyle: CSSProperties = { background: "#fff", border: "1px solid #e1e1e1", borderRadius: "14px", overflow: "hidden", boxShadow: "0 3px 12px rgba(0,0,0,0.04)" };
+const productImageWrapStyle: CSSProperties = { height: "230px", background: "#f0f0f0", position: "relative", overflow: "hidden" };
+const productImageStyle: CSSProperties = { width: "100%", height: "100%", objectFit: "cover", display: "block" };
+const imagePlaceholderStyle: CSSProperties = { width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#888", fontSize: "13px" };
+const imageCountBadgeStyle: CSSProperties = { position: "absolute", top: "10px", right: "10px", background: "rgba(0,0,0,0.75)", color: "#fff", borderRadius: "999px", padding: "5px 9px", fontSize: "11px", fontWeight: 700 };
+const featuredBadgeStyle: CSSProperties = { position: "absolute", left: "10px", top: "10px", background: "#fff", color: "#111", borderRadius: "999px", padding: "5px 9px", fontSize: "10px", fontWeight: 800, border: "1px solid #ddd" };
+const productCardBodyStyle: CSSProperties = { padding: "16px" };
+const productCardTopStyle: CSSProperties = { display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start" };
+const productIdStyle: CSSProperties = { color: "#888", fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em" };
+const productNameStyle: CSSProperties = { margin: "5px 0 0", fontSize: "19px", lineHeight: 1.25 };
+const activeBadgeStyle: CSSProperties = { background: "#ecfdf3", color: "#087443", border: "1px solid #b7e4c7", borderRadius: "999px", padding: "4px 8px", fontSize: "11px", fontWeight: 700 };
+const inactiveBadgeStyle: CSSProperties = { background: "#f3f4f6", color: "#666", border: "1px solid #ddd", borderRadius: "999px", padding: "4px 8px", fontSize: "11px", fontWeight: 700 };
+const metaRowStyle: CSSProperties = { display: "flex", gap: "6px", flexWrap: "wrap", color: "#555", fontSize: "12px", marginTop: "9px" };
+const specGridStyle: CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px", marginTop: "14px" };
+const specLabelStyle: CSSProperties = { display: "block", color: "#888", fontSize: "10px", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.05em" };
+const descriptionStyle: CSSProperties = { margin: "14px 0 0", color: "#666", fontSize: "13px", lineHeight: 1.5, minHeight: "39px" };
+const actionGridStyle: CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "15px" };
+const emptyStateStyle: CSSProperties = { marginTop: "18px", background: "#fff", border: "1px dashed #ccc", borderRadius: "14px", padding: "40px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: "5px", color: "#777" };
+const modalOverlayStyle: CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.48)", zIndex: 1000, padding: "24px", display: "flex", alignItems: "center", justifyContent: "center" };
+const modalStyle: CSSProperties = { width: "min(920px, 100%)", maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: "16px", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" };
+const modalHeaderStyle: CSSProperties = { padding: "18px 20px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", gap: "20px", alignItems: "flex-start", position: "sticky", top: 0, background: "#fff", zIndex: 2 };
+const modalTitleStyle: CSSProperties = { margin: 0, fontSize: "22px" };
+const closeButtonStyle: CSSProperties = { border: "1px solid #ddd", background: "#fff", width: "34px", height: "34px", borderRadius: "8px", fontSize: "24px", lineHeight: 1, cursor: "pointer" };
+const modalFooterStyle: CSSProperties = { borderTop: "1px solid #eee", padding: "16px 20px", display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginTop: "18px" };
+const modalCheckboxRowStyle: CSSProperties = { display: "flex", gap: "20px", flexWrap: "wrap", padding: "0 20px", marginTop: "14px" };
+const modalInfoStyle: CSSProperties = { margin: "18px 20px", padding: "11px 12px", background: "#f7f7f7", borderRadius: "8px", color: "#666", fontSize: "12px" };
+const imageModalGridStyle: CSSProperties = { padding: "0 20px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "12px" };
+const imageEditorCardStyle: CSSProperties = { borderRadius: "10px", padding: "10px", background: "#fafafa", display: "flex", flexDirection: "column", gap: "8px" };
+const editorImageWrapStyle: CSSProperties = { height: "170px", borderRadius: "7px", overflow: "hidden", background: "#eee" };
+const primaryPillStyle: CSSProperties = { alignSelf: "flex-start", background: "#111", color: "#fff", padding: "4px 7px", borderRadius: "5px", fontSize: "10px", fontWeight: 800 };
+const editorButtonRowStyle: CSSProperties = { display: "flex", gap: "6px", flexWrap: "wrap" };
+const uploadPanelStyle: CSSProperties = { margin: "18px 20px 0", padding: "15px", border: "1px solid #eee", borderRadius: "10px", background: "#fafafa", display: "flex", flexDirection: "column", gap: "8px" };
+const subHeadingStyle: CSSProperties = { margin: 0, fontSize: "16px" };
+const urlRowStyle: CSSProperties = { display: "flex", gap: "8px", alignItems: "center" };
+const optionsSectionStyle: CSSProperties = { margin: "18px 20px 0", padding: "15px", border: "1px solid #eee", borderRadius: "10px", background: "#fafafa" };
+const sectionMiniHeaderStyle: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", marginBottom: "12px" };
+const optionListStyle: CSSProperties = { display: "flex", flexDirection: "column", gap: "8px" };
+const optionEditorStyle: CSSProperties = { display: "flex", gap: "7px", alignItems: "center", flexWrap: "wrap", padding: "9px", background: "#fff", border: "1px solid #e5e5e5", borderRadius: "8px" };
+const addOptionRowStyle: CSSProperties = { display: "flex", gap: "8px", marginTop: "10px", flexWrap: "wrap" };
+const formGridStyle: CSSProperties = { padding: "20px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "14px" };
+const labelStyle: CSSProperties = { display: "block", fontWeight: 700, marginBottom: "6px", fontSize: "12px", color: "#444" };
+const inputStyle: CSSProperties = { width: "150px", padding: "10px 11px", border: "1px solid #ccc", borderRadius: "8px", fontSize: "14px", boxSizing: "border-box", background: "#fff", color: "#111" };
+const checkLabelStyle: CSSProperties = { display: "flex", alignItems: "center", gap: "7px", cursor: "pointer", whiteSpace: "nowrap", fontSize: "13px" };
+const blackButtonStyle: CSSProperties = { padding: "10px 14px", background: "#000", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" };
+const secondaryButtonStyle: CSSProperties = { padding: "10px 14px", background: "#fff", color: "#111", border: "1px solid #ccc", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" };
+const smallBlackButtonStyle: CSSProperties = { padding: "8px 10px", background: "#000", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 700, fontSize: "11px" };
+const secondarySmallButtonStyle: CSSProperties = { padding: "8px 10px", background: "#fff", color: "#111", border: "1px solid #aaa", borderRadius: "6px", cursor: "pointer", fontWeight: 700, fontSize: "11px" };
+const dangerButtonStyle: CSSProperties = { padding: "10px 14px", background: "#fff", color: "#c00", border: "1px solid #e22", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" };
+const smallTextStyle: CSSProperties = { fontSize: "12px", color: "#777" };
+const successStyle: CSSProperties = { background: "#ecfdf3", border: "1px solid #b7e4c7", color: "#087443", borderRadius: "8px", padding: "12px 14px", marginBottom: "15px" };
+const errorStyle: CSSProperties = { background: "#fff1f2", border: "1px solid #fecdd3", color: "#b42318", borderRadius: "8px", padding: "12px 14px", marginBottom: "15px" };
