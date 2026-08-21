@@ -44,6 +44,7 @@ type ProductImage = {
     alt_text: string | null;
     sort_order: number;
     is_primary: boolean;
+    color_id: number | null;
 };
 
 type ProductSize = {
@@ -62,6 +63,31 @@ type ProductColor = {
 };
 
 const fallbackImage = "/images/corporate.jpg";
+
+function getGalleryImages(
+    images: ProductImage[],
+    colorId: number | null
+) {
+    if (colorId === null) {
+        return images.filter(
+            (image) => image.color_id === null
+        );
+    }
+
+    const colorImages = images.filter(
+        (image) => image.color_id === colorId
+    );
+
+    if (colorImages.length > 0) {
+        return colorImages;
+    }
+
+    // Selected color has no assigned image.
+    // Show only general images, never another color's images.
+    return images.filter(
+        (image) => image.color_id === null
+    );
+}
 
 function getFallbackColorCode(color: string) {
     switch (color.toLowerCase()) {
@@ -137,6 +163,9 @@ export default function ProductDetailPage() {
 
     const [selectedColor, setSelectedColor] =
         useState("");
+
+    const [selectedColorId, setSelectedColorId] =
+        useState<number | null>(null);
 
     useEffect(() => {
         const loadProduct = async () => {
@@ -249,7 +278,8 @@ export default function ProductDetailPage() {
                                 image_url,
                                 alt_text,
                                 sort_order,
-                                is_primary
+                                is_primary,
+                                color_id
                             `
                         )
                         .eq(
@@ -418,8 +448,31 @@ export default function ProductDetailPage() {
                     sortedColors
                 );
 
+                // Select the first color that actually has
+                // an image. This prevents opening the product
+                // on a color with no gallery and then showing
+                // unrelated images.
+                const firstColorWithImages =
+                    sortedColors.find((color) =>
+                        sortedImages.some(
+                            (image) =>
+                                image.color_id === color.id
+                        )
+                    ) ?? sortedColors[0] ?? null;
+
+                const initialGalleryImages =
+                    firstColorWithImages
+                        ? getGalleryImages(
+                            sortedImages,
+                            firstColorWithImages.id
+                        )
+                        : sortedImages.filter(
+                            (image) =>
+                                image.color_id === null
+                        );
+
                 const firstImage =
-                    sortedImages[0]?.image_url ??
+                    initialGalleryImages[0]?.image_url ??
                     fallbackImage;
 
                 setSelectedImage(
@@ -431,7 +484,11 @@ export default function ProductDetailPage() {
                 );
 
                 setSelectedColor(
-                    sortedColors[0]?.color_name ?? ""
+                    firstColorWithImages?.color_name ?? ""
+                );
+
+                setSelectedColorId(
+                    firstColorWithImages?.id ?? null
                 );
             } catch (error) {
                 console.error(
@@ -443,6 +500,7 @@ export default function ProductDetailPage() {
                 setProductImages([]);
                 setProductSizes([]);
                 setProductColors([]);
+                setSelectedColorId(null);
 
                 setErrorMessage(
                     error instanceof Error
@@ -456,6 +514,62 @@ export default function ProductDetailPage() {
 
         loadProduct();
     }, []);
+
+    const filteredProductImages =
+        getGalleryImages(
+            productImages,
+            selectedColorId
+        );
+
+    useEffect(() => {
+        if (
+            selectedColorId === null ||
+            productImages.length === 0
+        ) {
+            return;
+        }
+
+        const imagesToShow =
+            getGalleryImages(
+                productImages,
+                selectedColorId
+            );
+
+        if (
+            !imagesToShow.some(
+                (image) =>
+                    image.image_url ===
+                    selectedImage
+            )
+        ) {
+            setSelectedImage(
+                imagesToShow[0]?.image_url ??
+                fallbackImage
+            );
+        }
+    }, [
+        selectedColorId,
+        productImages,
+        selectedImage,
+    ]);
+
+    const handleColorChange = (
+        color: ProductColor
+    ) => {
+        setSelectedColor(color.color_name);
+        setSelectedColorId(color.id);
+
+        const imagesToShow =
+            getGalleryImages(
+                productImages,
+                color.id
+            );
+
+        setSelectedImage(
+            imagesToShow[0]?.image_url ??
+            fallbackImage
+        );
+    };
 
     const whatsappMessage = product
         ? `Hello ClassyCrafth, I am interested in ${product.name}. ${selectedSize
@@ -605,10 +719,10 @@ export default function ProductDetailPage() {
                                 />
                             </div>
 
-                            {productImages.length >
+                            {filteredProductImages.length >
                                 1 && (
                                     <div className="mt-4 grid grid-cols-5 gap-3">
-                                        {productImages.map(
+                                        {filteredProductImages.map(
                                             (
                                                 image,
                                                 index
@@ -823,8 +937,8 @@ export default function ProductDetailPage() {
                                                                 color.color_name
                                                             }
                                                             onClick={() =>
-                                                                setSelectedColor(
-                                                                    color.color_name
+                                                                handleColorChange(
+                                                                    color
                                                                 )
                                                             }
                                                             className={`w-9 h-9 rounded-full border-2 transition ${selectedColor ===
